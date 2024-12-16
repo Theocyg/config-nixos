@@ -6,28 +6,37 @@
   pkgs,
   ...
 }: {
+  # Import des modules nécessaires
   imports = [
     inputs.home-manager.nixosModules.home-manager
     ./greetd.nix
   ];
-  
+
+  # Configuration Home Manager
   home-manager = {
     extraSpecialArgs = { inherit inputs outputs; };
     users = {
-      kaan = import ../home/home.nix;
+      masterchief = import ../home/home.nix;
     };
   };
 
+  # Active TLP pour économiser la batterie
   services.tlp.enable = true;
+
+  # Variables de session pour Wayland
   environment.sessionVariables = {
     "ELECTRON_OZONE_PLATFORM_HINT" = "wayland";
   };
 
+  # Activer Hyprland
   programs.hyprland.enable = true;
+
+  # Activer les portals xdg pour Wayland
   xdg.portal = {
     enable = true;
   };
 
+  # Configuration des overlays et autorisation des paquets non libres
   nixpkgs = {
     overlays = [];
     config = {
@@ -35,72 +44,80 @@
     };
   };
 
+  # Configuration Nix (flakes et features expérimentales)
   nix = let
     flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
   in {
     settings = {
       experimental-features = "nix-command flakes";
       flake-registry = "";
-      # Workaround for https://github.com/NixOS/nix/issues/9574
       nix-path = config.nix.nixPath;
     };
     channel.enable = false;
 
-    registry = lib.mapAttrs (_: flake: {inherit flake;}) flakeInputs;
+    registry = lib.mapAttrs (_: flake: { inherit flake; }) flakeInputs;
     nixPath = lib.mapAttrsToList (n: _: "${n}=flake:${n}") flakeInputs;
   };
 
+  # Configuration du chargeur de démarrage
   boot.loader = {
     systemd-boot.enable = true;
     efi.canTouchEfiVariables = true;
   };
+
+  # Sécurité avec PAM et Hyprlock
   security.pam.services.hyprlock = {};
-  
+
+  # Configuration réseau via NetworkManager
   networking.networkmanager.enable = true;
   environment.systemPackages = [
     pkgs.networkmanagerapplet
   ];
-  
+
+  # Configuration Bluetooth
   hardware.bluetooth.enable = true;
   hardware.bluetooth.powerOnBoot = true;
   services.blueman.enable = true;
 
+  # Utilisateurs et groupes
   users.users = {
-    kaan = {
-      initialPassword = "password";
+    masterchief = {
+      initialPassword = "password";  # Remplace par un mot de passe plus sécurisé
       isNormalUser = true;
-      openssh.authorizedKeys.keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH2J9YKlcGlhny06zjSme57qFOGarY/F0X9VvulUPrhm kaan@doyurur.xyz"];
-      extraGroups = [ "wheel" "networkmanager" "docker" ];
+      extraGroups = [ "wheel" "networkmanager" "docker" ]; # Groupes supplémentaires
     };
   };
 
+  # Configuration de l'heure
   time.timeZone = "Europe/Paris";
 
+  # Configuration des polices de caractères
   fonts.packages = with pkgs; [
-  noto-fonts
-  noto-fonts-cjk-sans
-  noto-fonts-emoji
-  liberation_ttf
-  fira-code
-  fira-code-symbols
-  mplus-outline-fonts.githubRelease
-  dina-font
-  proggyfonts
-  nerdfonts
+    noto-fonts
+    noto-fonts-cjk-sans
+    noto-fonts-emoji
+    liberation_ttf
+    fira-code
+    fira-code-symbols
+    mplus-outline-fonts.githubRelease
+    dina-font
+    proggyfonts
+    nerdfonts
   ];
 
-  # rtkit is optional but recommended
+  # RTKit pour des performances audio optimisées (optionnel)
   security.rtkit.enable = true;
+
+  # Configuration PipeWire (audio)
   services.pipewire = {
     enable = true;
     alsa.enable = true;
     alsa.support32Bit = true;
     pulse.enable = true;
-    # If you want to use JACK applications, uncomment this
-    #jack.enable = true;
+    jack.enable = true;
   };
 
-
+  # Désactivation du service OpenSSH (si non nécessaire)
   services.openssh = {
     enable = false;
     settings = {
@@ -109,9 +126,9 @@
     };
   };
 
+  # Activation de Tailscale (VPN)
   services.tailscale.enable = true;
 
-
-  # https://nixos.wiki/wiki/FAQ/When_do_I_update_stateVersion
-  system.stateVersion = "23.05";
+  # Mise à jour de l'état du système
+  system.stateVersion = "23.05"; # Assure-toi de correspondre à ta version NixOS
 }
